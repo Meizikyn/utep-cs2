@@ -1,0 +1,7 @@
+Arguments passed to MagickSquares are  placed into a matrix via.
+column-major order.
+
+This means only argument chain lengths with integer squares are acceptable.
+
+Values outside this range are considered undefined behavior, but will probably
+be ignored by the argument parser.
