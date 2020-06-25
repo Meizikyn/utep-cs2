@@ -1,4 +1,6 @@
-base:
+.PHONY: build
+
+build:
 	javac Magick.java&&java Magick 2 7 6 9 5 1 4 3 8
 
 errortest:
