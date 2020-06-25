@@ -69,6 +69,7 @@ public class Expression {
         }
         return -1;
     }
+    @SuppressWarnings("unchecked")
     public double parse() {
         Stack<String> exp = (Stack<String>)this.postfix.clone();
         return parse(exp);
