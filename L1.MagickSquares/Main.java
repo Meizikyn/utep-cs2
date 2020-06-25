@@ -37,7 +37,7 @@
   Otherwise, it is a magick square.
 
 */
-public class Magick {
+public class Main {
     public static void main(String [] argv) {
         int root = (int)Math.sqrt(argv.length);
         if (root*root != argv.length) {
