@@ -44,15 +44,18 @@ public class Main {
             System.out.printf("%s\n", "Incorrect number of arguments!");
             System.exit(1);
         }
+
+        /*
         int [][] candidate = new int [root][root];
         for (int i = 0, k = 0; i < root; ++i)
             for (int j = 0; j < root; ++j, ++k)
                 candidate[i][j] = Integer.parseInt(argv[k]);
-        /*
-        int [][] candidate1 = {{2, 7, 6},
-                               {9, 5, 1}
-                               {4, 3, 8}};
         */
+
+        int [][] candidate = {{2, 7, 6},
+                              {9, 5, 1},
+                              {4, 3, 8}};
+
         boolean t = new SquareMatrix(candidate).IsMagickSquare();
         System.out.println(t);
     }
