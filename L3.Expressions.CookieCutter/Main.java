@@ -1,5 +1,34 @@
-import java.util.EmptyStackException;
+// + NAME :: Nicholas Sims
+// + ID   :: 80713446
 
+/*
+
+  Intention: Expression String --> Postfix Representation --> small postfix parser to get value.
+
+  Calculating expressions by infix is very error prone and messy, postfix makes expression parsing
+   tiny affair and allows the use of the natural stack-like behavior of recursion to evaluate.
+
+  Expression strings given in main do not include negatives, no support for negatives needed.
+
+  Third expression string has incorrect brackets, will need a small matching function to check
+  for proper brackets.
+
+  Create a small order of operations jump table to get precedence.
+
+  Gut whitespace from the expression string and split it into an array to make postfix conversion simple.
+
+  Walk through the infix expression array, push all operands to the postfix stack, push all higher order
+  operators to the stack, and branch if lower order operators or sub-expressions are encountered.
+
+  Sub-expressions, and brackets, need not be accounted for in order since bracket matching occurs first.
+
+  Postfix representation doesn't need brackets.
+
+  Parse postfix recursively, cache right hand value and recursively acquire sub expressions for the left.
+
+*/
+
+import java.util.EmptyStackException;
 public class Main
 {
     public static int evaluate(String expression)
