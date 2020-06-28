@@ -2,56 +2,55 @@ import java.util.Arrays;
 import java.util.Vector;
 import java.util.Stack;
 public class Expression {
-
-    private Stack<String> postfix;    // Storage for postfix conversion
-
+    private Stack<String> postfix;
     public Expression(String infix) {
-
-        // Some boilerplate to remove whitespace
-
-        String _infix = "";                     // Empty String to append to
-        Stack<String> stack = new Stack<>();    // Stack to hold temporary operators and parenthesis
-        this.postfix = new Stack<>();           // Initialize postfix stack
-        for (String s : infix.split("\\s"))     // Loop over whitespace separated string array
-            _infix = _infix.concat(s);          // Rebuild new infix expression string without whitespace
-
-        // Use regex to split "around" special operators and delimiters, preserving them in place,
-        // makes processing algorithm simpler. Vector makes tricking postfix for negative numbers easier.
+        String _infix = "";
+        Stack<String> stack = new Stack<>();
+        String brackets = infix.replaceAll("[^\\(\\[\\{\\)\\]\\}]+","");
+        this.postfix = new Stack<>();
+        for (String s : infix.split("\\s"))
+            _infix = _infix.concat(s);
         Vector<String> exp = new Vector<String>(Arrays.asList(_infix.split("((?<=\\+)|(?=\\+)|(?<=\\/)|(?=\\/)|"  +
                                                                            "(?<=\\*)|(?=\\*)|(?<=-)|(?=-)|"       +
                                                                            "(?<=%)|(?=%)|(?<=\\()|(?=\\()|"       +
-                                                                           "(?<=\\))|(?=\\))|(?<=\\^)|(?=\\^)"    +
+                                                                           "(?<=\\))|(?=\\))|(?<=\\^)|(?=\\^)|"   +
+                                                                           "(?<=\\[)|(?=\\[)|(?<=\\{)|(?=\\{)|"   +
+                                                                           "(?<=\\])|(?=\\])|(?<=\\})|(?=\\})"  +
                                                                            ")")));
-
-        // Compensate for possible negative number at the beginning of the expression
         if (exp.get(0).matches("-"))
             exp.add(0,"0");
-
-        // Compensate for all other negative numbers, close alignment to how Java actually evaluates expressions internally
         for (int i=1; i<exp.size(); ++i) {
-            if (exp.get(i).matches("-")    &&   // Match negative operator
-                (exp.get(i-1).matches("\\+") || // But only if it is preceded by a + operator
-                 exp.get(i-1).matches("\\(")))  // or at the beginning of a sub-expression
-                exp.add(i,"0");                 // Place a zero, this lazily enables for "subtract from 0" evaluation so no further
-                                                // work is needed from here
+            if (exp.get(i).matches("-")    &&
+                (exp.get(i-1).matches("\\+") ||
+                 exp.get(i-1).matches("\\(") ||
+                 exp.get(i-1).matches("\\[") ||
+                 exp.get(i-1).matches("\\{")
+                 ))
+                exp.add(i,"0");
         }
         try {
+            if (!match(brackets))
+                throw new ArithmeticException("Brackets Invalid!");
             for (String s : exp) {
-                if (s.matches("^(\\d*\\.)?\\d+$")) { // Match numbers with decimals, but only up to one decimal, any more should throw a stack error later
+                if (s.matches("^(\\d*\\.)?\\d+$")) {
                     this.postfix.add(s);
                     continue;
                 }
                 switch(s.charAt(0)) {
                 case '(':
-                    stack.push(s);       // Handle sub-expressions
+                case '[':
+                case '{':
+                    stack.push(s);
                     continue;
-                case ')':                // Once the sub-expr ends, pull all the operators found
-                    for (;!stack.isEmpty() && !stack.peek().matches("\\(");) {
+                case ')':
+                case ']':
+                case '}':
+                    for (;!stack.isEmpty() && !stack.peek().matches("\\(|\\[|\\{");) {
                         this.postfix.add(stack.pop());
                     }
-                    stack.pop();         // Toss the final parenthesis, it isn't needed once in postfix
+                    stack.pop();
                     continue;
-                default:                 // Operators check order of operations against one another and add themselves relative to that order
+                default:
                     for (;!stack.isEmpty() && order(s) <= order(stack.peek());)
                         this.postfix.add(stack.pop());
                     stack.push(s);
@@ -72,6 +71,44 @@ public class Expression {
         }
     }
 
+    private boolean match(String s) {
+        try {
+            switch(s.charAt(0)) {
+            case '(':
+                match(s,1,')');
+                break;
+            case '[':
+                match(s,1,']');
+                break;
+            case '{':
+                match(s,1,'}');
+                break;
+            }
+        } catch (Exception e) {
+            return false;
+        }
+        return true;
+    }
+
+    private static int match(String s, int i, char t) throws Exception {
+        while (s.charAt(i) != t) {
+            switch(s.charAt(i)) {
+            case '(':
+                i = match(s,i+1,')');
+                continue;
+            case '[':
+                i = match(s,i+1,']');
+                continue;
+            case '{':
+                i = match(s,i+1,'}');
+                continue;
+            default:
+                throw new Exception();
+            }
+        }
+        return i+1;
+    }
+
     // Check the order of operations
     private int order(String s) {
         char c = s.charAt(0);
@@ -89,22 +126,22 @@ public class Expression {
         return -1;
     }
 
-    @SuppressWarnings("unchecked")  // Ignore clone return type cast, since typecasts are runtime warnings
+    @SuppressWarnings("unchecked")
     public double parse() {
-        Stack<String> exp = (Stack<String>)this.postfix.clone(); // Prevent mucking the original postfix
-        return parse(exp);                                       // Begin recursive call
+        Stack<String> exp = (Stack<String>)this.postfix.clone();
+        return parse(exp);
     }
 
     private double parse(Stack exp) {
-        double v; // Storage for the "right hand side" of the equation at each stage
-        String s = (String)exp.pop();       // cast required since initial clone returns an object container of more objects
-        if (s.matches("(\\d*\\.)?\\d+$")) { // check for numbers with one or zero decimals
-            return Double.parseDouble(s);   // Return any numbers found
-        }                                   // otherwise..
+        double v;
+        String s = (String)exp.pop();
+        if (s.matches("(\\d*\\.)?\\d+$")) {
+            return Double.parseDouble(s);
+        }
 
-        v = parse(exp);                      // Capture "right hand side" evaluation
+        v = parse(exp);
         switch(s.charAt(0)) {
-        case '^':                            // For each operator, run the CPU stack for cached sub-expressions based on order method
+        case '^':
             return Math.pow(parse(exp), v);
         case '*':
             return parse(exp) * v;
@@ -117,7 +154,6 @@ public class Expression {
         case '%':
             return parse(exp) % v;
         }
-        System.out.println(exp);                                   // Print operator error for debugging
         throw new ArithmeticException("Invalid Operator Found!");
     }
 }
