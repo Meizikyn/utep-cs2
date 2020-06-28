@@ -5,8 +5,8 @@ public class Convert {
 
     public static void main(String [] argv) {
 
+        Stack<String> postfix = new Stack<>();;
         Stack<String> stack = new Stack<>();
-        String postfix = "";
         String infix = "";
 
         for (String s : argv[0].split("\\s"))
@@ -37,7 +37,7 @@ public class Convert {
 
             // Acquire numbers with one or less decimals
             if (s.matches("^(\\d*\\.)?\\d+$")) {
-                postfix += s;
+                postfix.add(s);
                 continue;
             }
 
@@ -51,7 +51,7 @@ public class Convert {
                 // Handle sub-expressions
             case ')':
                 for (;!stack.isEmpty() && !stack.peek().matches("\\(");) {
-                    postfix += stack.pop();
+                    postfix.add(stack.pop());
                 }
                 stack.pop();
                 continue;
@@ -59,7 +59,7 @@ public class Convert {
                 // Handle operators
             default:
                 for (;!stack.isEmpty() && order(s) <= order(stack.peek());)
-                    postfix += stack.pop();
+                    postfix.add(stack.pop());
                 stack.push(s);
                 continue;
             }
@@ -67,9 +67,12 @@ public class Convert {
 
         // Pull remaining higher order operators
         for(;!stack.isEmpty();)
-            postfix += stack.pop();
+            postfix.add(stack.pop());
 
-        System.out.println(postfix);
+        String output = "";
+        for (int i = 0; i<postfix.size(); ++i)
+            output += postfix.get(i) + " ";
+        System.out.println(output);
     }
 
     private static int order(String s) {
