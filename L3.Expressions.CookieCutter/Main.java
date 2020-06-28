@@ -41,8 +41,8 @@ public class Main
         // Determine if brackets are a match, makes checking them without ordering
         // a simple affair during postfix conversion.
         if (!match(brackets)) {
-            System.out.printf("![E] -- %s\n", "Invalid Expression, Brackets do not match.");
-            return 0;
+            System.out.printf("! [E] -- %s :: ", "Invalid Expression, Brackets do not match");
+            return -1;
         }
 
         // Prepare an evaluation string slice
@@ -52,79 +52,68 @@ public class Main
         for (String s : expression.split("\\s"))
             exp = exp.concat(s);
 
-        // Prepare a postfix representation of the expression.
-        // A modified class was made as a char stack is insufficient
-        // to properly handle integers of more than a single digit.
-        Stack_string postfix = new Stack_string();
+        // Prepare value stack
+        Stack_int values = new Stack_int();
 
         // Prepare a temporary stack to hold operators
         Stack_string ops = new Stack_string();
 
         // Prepare an array representation of the expression
-        String [] infix;
-        infix = exp.split("((?<=\\+)|(?=\\+)|(?<=\\/)|(?=\\/)|"  +
-                          "(?<=\\*)|(?=\\*)|(?<=-)|(?=-)|"       +
-                          "(?<=%)|(?=%)|(?<=\\()|(?=\\()|"       +
-                          "(?<=\\))|(?=\\))|(?<=\\^)|(?=\\^)|"   +
-                          "(?<=\\[)|(?=\\[)|(?<=\\{)|(?=\\{)|"   +
-                          "(?<=\\])|(?=\\])|(?<=\\})|(?=\\})"    +
-                          ")");
+        String [] tokens;
+        tokens = exp.split("((?<=\\+)|(?=\\+)|(?<=\\/)|(?=\\/)|"  +
+                           "(?<=\\*)|(?=\\*)|(?<=-)|(?=-)|"       +
+                           "(?<=%)|(?=%)|(?<=\\()|(?=\\()|"       +
+                           "(?<=\\))|(?=\\))|(?<=\\^)|(?=\\^)|"   +
+                           "(?<=\\[)|(?=\\[)|(?<=\\{)|(?=\\{)|"   +
+                           "(?<=\\])|(?=\\])|(?<=\\})|(?=\\})"    +
+                           ")");
 
-        // Begin converting from infix to postfix
-        for (String s : infix) {
 
-            // Determine if next unit is a number
-            if (s.matches("^(\\d*)$")) {
+        // Begin parsing infix expression
+        for (String s : tokens) {
 
-                // If so, push to postfix and reset the loop
-                postfix.push(s);
+            if (s.matches("^[\\d]+$")) {
+                values.push(Integer.parseInt(s));
                 continue;
             }
 
-            switch(s.charAt(0)) {
-
-                // Otherwise, check for any valid sub-expressions
-            case '(':
-            case '[':
-            case '{':
+            if (s.matches("\\(|\\[|\\{")) {
                 ops.push(s);
                 continue;
+            }
 
-                // If closing a sub-expression, pull from the stack of operators
-                // until it clears, and eliminate the closing brace
-            case ')':
-            case ']':
-            case '}':
-                for (;!ops.isEmpty() && !ops.peek().matches("\\(|\\[|\\{");) {
-                    postfix.push(ops.pop());
+            if (s.matches("\\+|\\*|-|/")) {
+                if (ops.isEmpty()) {
+                    ops.push(s);
+                    continue;
                 }
-                ops.pop();
+                if (order(s) > order(ops.peek())) {
+                    ops.push(s);
+                    continue;
+                }
+                values.push((int)parse(ops.pop(), (double)values.pop(), (double)values.pop()));
                 continue;
+            }
 
-                // Otherwise, the next unit is an operator, check it's precedence
-            default:
-                for (;!ops.isEmpty() && order(s) <= order(ops.peek());)
-                    postfix.push(ops.pop());
-                ops.push(s);
+            if (s.matches("\\)|\\]|\\}")) {
+                for (;!ops.peek().matches("\\(|\\[|\\{");)
+                    values.push((int)parse(ops.pop(), (double)values.pop(), (double)values.pop()));
+                ops.pop();
                 continue;
             }
         }
 
-        // Acquire remaining operators
-        for(;!ops.isEmpty();)
-            postfix.push(ops.pop());
+        for (;!ops.isEmpty();)
+            values.push((int)parse(ops.pop(), (double)values.pop(), (double)values.pop()));
+        System.out.printf("# [=] Expression Val -[$]- %s = ", expression);
+        return values.pop();
+
 
         // Return a parsed value, a recursion is used to make the postfix
         // evaluation code considerably simpler to read of a loop-based
         // solution, so an entry point is called here.
 
         // The value is cast to int as to not modify the (evaluate)
-        try {
-            return (int)parse(postfix);
-        } catch(Exception e) {
-            System.out.printf("![E] -- %s\n", "Invalid Expression.");
-            return 0;
-        }
     }
 
 
@@ -198,9 +187,6 @@ public class Main
     }
 
 
-    // This method was created to evaluate the generated postfix recursively
-    // as it makes the resulting code easier to read.
-
     // (parse) cannot exist as an <int> return type, as sub-expressions may
     // result in decimal values during evaluation. To make this an int will
     // cause the pre-fabricated expression strings called in main return
@@ -209,37 +195,27 @@ public class Main
 
     // to solve this, doubles are used internally and the entry-point call
     // is cast back as an integer.
-    private static double parse(Stack_string exp) throws ArithmeticException {
-
-        // v is used as the "right hand side" in each sub-expression
-        double v;
-
-        // Acquire the next element of the expression
-        String s = exp.pop();
-
-        // If element is a valid number, with or without decimals, return.
-        if (s.matches("(\\d*\\.)?\\d+$")) {
-            return Double.parseDouble(s);
-        }
-
-        // Cache the "right hand side"
-        v = parse(exp);
-
-        // Determine the operator a call for next operand that may
-        // result in an evaluation of the call's sub-expression.
-        switch(s.charAt(0)) {
-        case '*':
-            return parse(exp) * v;
+    private static double parse(String f, double b, double a) throws ArithmeticException {
+        double v = -1;
+        switch(f.charAt(0)) {
         case '/':
-            return parse(exp) / v;
-        case '+':
-            return parse(exp) + v;
+            v = a/b;
+            break;
+        case '*':
+            v = a*b;
+            break;
         case '-':
-            return parse(exp) - v;
+            v = a-b;
+            break;
+        case '+':
+            v = a+b;
+            break;
+        default:
+            throw new ArithmeticException("Invalid Operator Found!");
         }
 
-        // An invalid operator was found.
-        throw new ArithmeticException("Invalid Operator Found!");
+        System.out.printf("# [%s] Sub-Expression -[ ]- %f %s %f = %f\n", f, a, f, b, v);
+        return v;
     }
 
     public static void main(String[] args)
