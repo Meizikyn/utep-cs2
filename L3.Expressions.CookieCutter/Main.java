@@ -52,8 +52,12 @@ public class Main
         for (String s : expression.split("\\s"))
             exp = exp.concat(s);
 
-        // Prepare value stack
-        Stack_int values = new Stack_int();
+        // Prepare value stack, modified as <double> to avoid
+        // value loss of sub-expressions, final value is still
+        // truncated to <int>
+        // This is the only way to return a correct value for
+        // test expression 2.
+        Stack_double values = new Stack_double();
 
         // Prepare a temporary stack to hold operators
         Stack_string ops = new Stack_string();
@@ -72,16 +76,19 @@ public class Main
         // Begin parsing infix expression
         for (String s : tokens) {
 
+            // Push numbers
             if (s.matches("^[\\d]+$")) {
-                values.push(Integer.parseInt(s));
+                values.push(Double.parseDouble(s));
                 continue;
             }
 
+            // Push brackets
             if (s.matches("\\(|\\[|\\{")) {
                 ops.push(s);
                 continue;
             }
 
+            // Operator check and sub-expression parsing
             if (s.matches("\\+|\\*|-|/")) {
                 if (ops.isEmpty()) {
                     ops.push(s);
@@ -91,29 +98,28 @@ public class Main
                     ops.push(s);
                     continue;
                 }
-                values.push((int)parse(ops.pop(), (double)values.pop(), (double)values.pop()));
+                values.push(parse(ops.pop(), values.pop(), values.pop()));
                 continue;
             }
 
+            // Handle bracketed sub-expression parsing
             if (s.matches("\\)|\\]|\\}")) {
                 for (;!ops.peek().matches("\\(|\\[|\\{");)
-                    values.push((int)parse(ops.pop(), (double)values.pop(), (double)values.pop()));
+                    values.push(parse(ops.pop(), values.pop(), values.pop()));
                 ops.pop();
                 continue;
             }
         }
 
+        // Clean out the last sub-expression
         for (;!ops.isEmpty();)
-            values.push((int)parse(ops.pop(), (double)values.pop(), (double)values.pop()));
+            values.push(parse(ops.pop(), values.pop(), values.pop()));
+
+        // Information to stdout
         System.out.printf("# [=] Expression Val -[$]- %s = ", expression);
-        return values.pop();
 
-
-        // Return a parsed value, a recursion is used to make the postfix
-        // evaluation code considerably simpler to read of a loop-based
-        // solution, so an entry point is called here.
-
-        // The value is cast to int as to not modify the (evaluate)
+        // The value is cast to int as to not modify the (evaluate) function
+        return (int)values.pop();
     }
 
 
